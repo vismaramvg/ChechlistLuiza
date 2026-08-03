@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Checklist da Bolsa</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(160deg, #0f2027, #203a43, #2c5364);
+    min-height: 100vh;
+    color: #fff;
+  }
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+  }
+  header {
+    text-align: center;
+    padding: 10px 0 20px;
+  }
+  header h1 {
+    font-size: 1.7rem;
+    margin: 0 0 4px;
+    letter-spacing: 0.5px;
+  }
+  header .emoji {
+    font-size: 2.4rem;
+  }
+  .day-selector {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    margin-bottom: 18px;
+  }
+  .day-btn {
+    flex: 1;
+    padding: 10px 0;
+    text-align: center;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid transparent;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #cfe8ff;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .day-btn.active {
+    background: #ffd166;
+    color: #1a1a1a;
+    border-color: #ffd166;
+    transform: scale(1.05);
+  }
+  .progress-box {
+    background: rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .progress-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .progress-bar-outer {
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    height: 14px;
+    width: 100%;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, #38ef7d, #11998e);
+    width: 0%;
+    border-radius: 20px;
+    transition: width .3s ease;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: background .2s ease, transform .12s ease;
+    user-select: none;
+  }
+  .item:active {
+    transform: scale(0.98);
+  }
+  .item.checked {
+    background: linear-gradient(90deg, rgba(56,239,125,0.25), rgba(17,153,142,0.25));
+    border: 1px solid rgba(56,239,125,0.6);
+  }
+  .checkbox {
+    min-width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 2.5px solid #7fd8c9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    background: rgba(255,255,255,0.05);
+    flex-shrink: 0;
+  }
+  .item.checked .checkbox {
+    background: #38ef7d;
+    border-color: #38ef7d;
+    color: #063;
+  }
+  .item-emoji {
+    font-size: 1.8rem;
+    min-width: 34px;
+    text-align: center;
+  }
+  .item-label {
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .item.checked .item-label {
+    text-decoration: line-through;
+    opacity: 0.75;
+  }
+  .reset-btn {
+    display: block;
+    width: 100%;
+    margin-top: 24px;
+    padding: 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+  }
+  .done-msg {
+    text-align: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-top: 16px;
+    color: #38ef7d;
+    display: none;
+  }
+  .empty-msg {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #a0aec0;
+    margin-top: 40px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="emoji">🎒</div>
+    <h1>Checklist da Bolsa</h1>
+  </header>
+
+  <div class="day-selector" id="daySelector"></div>
+
+  <div class="progress-box">
+    <div style="width:100%">
+      <div class="progress-text" id="progressText">0 de 0 itens</div>
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="progressBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="itemsList"></div>
+  <div class="empty-msg" id="emptyMsg">☕ Nenhum item para hoje por aqui!</div>
+
+  <div class="done-msg" id="doneMsg">✅ Tudo pronto, pode ir! 🚀</div>
+
+  <button class="reset-btn" id="resetBtn">🔄 Desmarcar tudo do dia</button>
+</div>
+
+<script>
+// Defina os dias em que cada item deve aparecer. 
+// Se omitir o campo 'days', o item aparecerá todos os dias por padrão.
+// Chaves dos dias: 'dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'
+const items = [
+  { id: 1, label: "Gelo", emoji: "🧊" },
+  { id: 2, label: "Queijo stick", emoji: "🧀" },
+  { id: 3, label: "Iogurte", emoji: "🥛" },
+  { id: 4, label: "Talheres", emoji: "🍴" },
+  { id: 5, label: "Morango", emoji: "🍓" },
+  { id: 6, label: "Tomatinho", emoji: "🍅" },
+  { id: 7, label: "Milho", emoji: "🌽" },
+  { id: 8, label: "Cappuccino 3 Corações", emoji: "☕" },
+  { id: 9, label: "Bolacha Teens", emoji: "🍪" },
+  { id: 10, label: "Doce/Chocolate", emoji: "🍫" },
+  { id: 11, label: "Água", emoji: "💧" },
+  { id: 12, label: "Pão com queijo", emoji: "🥪", days: ["qua", "sex"] }, // Aparece apenas na quarta e sexta
+];
+
+const days = [
+  { key: "dom", label: "Dom" },
+  { key: "seg", label: "Seg" },
+  { key: "ter", label: "Ter" },
+  { key: "qua", label: "Qua" },
+  { key: "qui", label: "Qui" },
+  { key: "sex", label: "Sex" },
+  { key: "sab", label: "Sáb" },
+];
+
+const todayIndex = new Date().getDay();
+let selectedDay = days[todayIndex].key;
+let state = {}; 
+
+const daySelectorEl = document.getElementById('daySelector');
+const itemsListEl = document.getElementById('itemsList');
+const progressTextEl = document.getElementById('progressText');
+const progressBarEl = document.getElementById('progressBar');
+const doneMsgEl = document.getElementById('doneMsg');
+const emptyMsgEl = document.getElementById('emptyMsg');
+const resetBtn = document.getElementById('resetBtn');
+
+function storageKey() {
+  return 'checklist:' + selectedDay;
+}
+
+async function loadDayState() {
+  try {
+    const result = await window.storage.get(storageKey());
+    state[selectedDay] = result ? JSON.parse(result.value) : {};
+  } catch (e) {
+    state[selectedDay] = state[selectedDay] || {};
+  }
+}
+
+async function saveDayState() {
+  try {
+    await window.storage.set(storageKey(), JSON.stringify(state[selectedDay] || {}));
+  } catch (e) {
+    console.error('Erro ao salvar', e);
+  }
+}
+
+function renderDaySelector() {
+  daySelectorEl.innerHTML = '';
+  days.forEach(d => {
+    const btn = document.createElement('div');
+    btn.className = 'day-btn' + (d.key === selectedDay ? ' active' : '');
+    btn.textContent = d.label;
+    btn.onclick = () => switchDay(d.key);
+    daySelectorEl.appendChild(btn);
+  });
+}
+
+function getFilteredItems() {
+  return items.filter(item => {
+    // Se o item não tem a restrição 'days', ele aparece em todos os dias
+    if (!item.days) return true;
+    // Caso contrário, verifica se o dia selecionado está na lista permitida
+    return item.days.includes(selectedDay);
+  });
+}
+
+function renderItems() {
+  itemsListEl.innerHTML = '';
+  const currentItems = getFilteredItems();
+  const dayState = state[selectedDay] || {};
+
+  if (currentItems.length === 0) {
+    emptyMsgEl.style.display = 'block';
+  } else {
+    emptyMsgEl.style.display = 'none';
+    currentItems.forEach(item => {
+      const checked = !!dayState[item.id];
+      const el = document.createElement('div');
+      el.className = 'item' + (checked ? ' checked' : '');
+      el.innerHTML = `
+        <div class="checkbox">${checked ? '✓' : ''}</div>
+        <div class="item-emoji">${item.emoji}</div>
+        <div class="item-label">${item.label}</div>
+      `;
+      el.onclick = () => toggleItem(item.id);
+      itemsListEl.appendChild(el);
+    });
+  }
+  updateProgress();
+}
+
+function updateProgress() {
+  const currentItems = getFilteredItems();
+  const dayState = state[selectedDay] || {};
+  const checkedCount = currentItems.filter(i => dayState[i.id]).length;
+  const total = currentItems.length;
+
+  progressTextEl.textContent = `${checkedCount} de ${total} itens`;
+  progressBarEl.style.width = total > 0 ? (checkedCount / total * 100) + '%' : '0%';
+  
+  if (total > 0 && checkedCount === total) {
+    doneMsgEl.style.display = 'block';
+  } else {
+    doneMsgEl.style.display = 'none';
+  }
+}
+
+async function toggleItem(itemId) {
+  if (!state[selectedDay]) state[selectedDay] = {};
+  state[selectedDay][itemId] = !state[selectedDay][itemId];
+  renderItems();
+  await saveDayState();
+}
+
+async function switchDay(dayKey) {
+  selectedDay = dayKey;
+  renderDaySelector();
+  await loadDayState();
+  renderItems();
+}
+
+resetBtn.onclick = async () => {
+  state[selectedDay] = {};
+  renderItems();
+  await saveDayState();
+};
+
+(async function init() {
+  renderDaySelector();
+  await loadDayState();
+  renderItems();
+})();
+</script>
+</body>
+</html>
