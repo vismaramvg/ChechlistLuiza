@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Checklist Luiza</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f2027">
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -190,9 +192,6 @@
 </div>
 
 <script>
-// Defina os dias em que cada item deve aparecer. 
-// Se omitir o campo 'days', o item aparecerá todos os dias por padrão.
-// Chaves dos dias: 'dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'
 const items = [
   { id: 1, label: "Gelo", emoji: "🧊" },
   { id: 2, label: "Queijo Stick", emoji: "🧀" },
@@ -205,7 +204,7 @@ const items = [
   { id: 9, label: "Bolacha Teens", emoji: "🍪" },
   { id: 10, label: "Doce/Chocolate", emoji: "🍫" },
   { id: 11, label: "Água", emoji: "💧" },
-  { id: 12, label: "Pão com queijo", emoji: "🥪", days: ["qua", "sex"] }, // Aparece apenas na quarta e sexta
+  { id: 12, label: "Pão com queijo", emoji: "🥪", days: ["qua", "sex"] },
 ];
 
 const days = [
@@ -216,8 +215,11 @@ const days = [
   { key: "sex", label: "Sex" },
 ];
 
-const todayIndex = new Date().getDay();
-let selectedDay = days[todayIndex].key;
+// Identifica o dia atual. Se for fim de semana (domingo=0, sábado=6), padrão para segunda ('seg')
+const jsDay = new Date().getDay();
+const dayMap = { 1: "seg", 2: "ter", 3: "qua", 4: "qui", 5: "sex" };
+let selectedDay = dayMap[jsDay] || "seg";
+
 let state = {}; 
 
 const daySelectorEl = document.getElementById('daySelector');
@@ -229,13 +231,13 @@ const emptyMsgEl = document.getElementById('emptyMsg');
 const resetBtn = document.getElementById('resetBtn');
 
 function storageKey() {
-  return 'checklist:' + selectedDay;
+  return 'checklist_luiza:' + selectedDay;
 }
 
 async function loadDayState() {
   try {
-    const result = await window.storage.get(storageKey());
-    state[selectedDay] = result ? JSON.parse(result.value) : {};
+    const val = localStorage.getItem(storageKey());
+    state[selectedDay] = val ? JSON.parse(val) : {};
   } catch (e) {
     state[selectedDay] = state[selectedDay] || {};
   }
@@ -243,7 +245,7 @@ async function loadDayState() {
 
 async function saveDayState() {
   try {
-    await window.storage.set(storageKey(), JSON.stringify(state[selectedDay] || {}));
+    localStorage.setItem(storageKey(), JSON.stringify(state[selectedDay] || {}));
   } catch (e) {
     console.error('Erro ao salvar', e);
   }
@@ -262,9 +264,7 @@ function renderDaySelector() {
 
 function getFilteredItems() {
   return items.filter(item => {
-    // Se o item não tem a restrição 'days', ele aparece em todos os dias
     if (!item.days) return true;
-    // Caso contrário, verifica se o dia selecionado está na lista permitida
     return item.days.includes(selectedDay);
   });
 }
