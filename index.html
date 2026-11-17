@@ -215,7 +215,6 @@ const days = [
   { key: "sex", label: "Sex" },
 ];
 
-// Identifica o dia atual. Se for fim de semana (domingo=0, sábado=6), padrão para segunda ('seg')
 const jsDay = new Date().getDay();
 const dayMap = { 1: "seg", 2: "ter", 3: "qua", 4: "qui", 5: "sex" };
 let selectedDay = dayMap[jsDay] || "seg";
@@ -229,6 +228,30 @@ const progressBarEl = document.getElementById('progressBar');
 const doneMsgEl = document.getElementById('doneMsg');
 const emptyMsgEl = document.getElementById('emptyMsg');
 const resetBtn = document.getElementById('resetBtn');
+
+// Função auxiliar para calcular o número da semana do ano atual
+function getWeekNumber(d) {
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return d.getUTCFullYear() + '-' + weekNo;
+}
+
+// Verifica se virou a semana e limpa os dados antigos automaticamente
+function checkAndResetWeekly() {
+  const currentWeek = getWeekNumber(new Date());
+  const savedWeek = localStorage.getItem('checklist_luiza_week');
+
+  if (savedWeek !== currentWeek) {
+    // É uma nova semana! Limpa todos os dias salvos no localStorage
+    days.forEach(d => {
+      localStorage.removeItem('checklist_luiza:' + d.key);
+    });
+    // Atualiza para a semana atual
+    localStorage.setItem('checklist_luiza_week', currentWeek);
+  }
+}
 
 function storageKey() {
   return 'checklist_luiza:' + selectedDay;
@@ -331,6 +354,7 @@ resetBtn.onclick = async () => {
 };
 
 (async function init() {
+  checkAndResetWeekly(); // Executa a verificação automática da semana ao iniciar
   renderDaySelector();
   await loadDayState();
   renderItems();
